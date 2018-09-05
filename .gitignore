@@ -1,0 +1,87 @@
+
+tobacco/secrets.json
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+*.c
+*.png
+*.npy
+*.rdb
+
+.idea/
+
+tobacco/full_db/1grams.txt
+tobacco/full_db/2grams.txt
+
+# Distribution / packaging
+.Python
+env/
+bin/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.lprof
+*.stats
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# Rope
+.ropeproject
+
+# Django stuff:
+*.log
+*.pot
+
+# Sphinx documentation
+docs/_build/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Python Object Pickle
+*.pickle
+*.npz
+*.mat
+
+# JSON file
+*.json
+
+# idea xmls
+idea/
+
+# csvs
+*.csv
