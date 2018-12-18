@@ -164,8 +164,8 @@ if __name__ == "__main__":
 #    print(parse_search_tokens('addictive'))
 #    print(parse_search_tokens(['addict drugs']))
 #     w = wildcard_search('johnston *', 2, 100)
-    w = wildcard_search('smoking is*', 3, 100)
-
-    for i in w:
-        print(i)
+#    w = wildcard_search('smoking is*', 3, 100)
+#    for i in w:
+#       print(i)
 #    print(parse_search_tokens(['self-administration']))
+    parse_search_tokens(['addiction'])

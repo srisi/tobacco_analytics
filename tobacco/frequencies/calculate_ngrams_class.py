@@ -1,7 +1,7 @@
 
 import multiprocessing
 import time
-import json 
+import json
 
 import numpy as np
 from IPython import embed
@@ -27,8 +27,8 @@ from tobacco.utilities.hash import generate_hash
 class NgramResult():
 
     def __init__(self, doc_type_filters: list, collection_filters: list,
-                 availability_fiters: list, term_filters: list,
-                 unparsed_search_tokens: str = None, parsed_search_tokens: str = None):
+                 availability_filters: list, term_filters: list,
+                 unparsed_search_tokens: list = None, parsed_search_tokens: list = None):
 
         self.unparsed_search_tokens = unparsed_search_tokens
         self.parsed_search_tokens = parsed_search_tokens
@@ -37,12 +37,17 @@ class NgramResult():
 
         self.muliprocessing_queue = None
 
-        ################
+
+        # Results
+        self.tokens_data = None
+        self.collections = None
+        self.doc_types = None
+        self.doc_type_groups = None
+
         # Filters
-        ################
         self.doc_type_filters = doc_type_filters
         self.collection_filters = collection_filters
-        self.availability_filters = availability_fiters
+        self.availability_filters = availability_filters
         self.term_filters = term_filters
 
         self.active_collection_filters_np = None
@@ -54,7 +59,6 @@ class NgramResult():
 
     def store_result_in_db(self, database):
 
-        pass
 
         hash = generate_hash((self.parsed_search_tokens, self.doc_type_filters,
                               self.collection_filters, self.availability_filters, self.term_filters))
@@ -72,9 +76,24 @@ class NgramResult():
         con, cur = database.connect()
         cur.execute(store_cmd, (str(self.tokens), str(self.doc_type_filters),
                                 str(self.collection_filters), str(self.availability_filters),
-                                str(self.term_filters), hash, json.dumps(frequencies_result)))
+                                str(self.term_filters), hash,
+                                json.dumps(self.generate_results_dict())))
         con.commit()
         con.close()
+
+    def generate_results_dict(self):
+
+        return {
+            'error': self.errors,
+            'data': {
+                'tokens': self.tokens_data, # using 'tokens' for backwards compatibility
+                'collections': self.collections,
+                'doc_types': self.doc_types,
+                'doc_type_groups': self.doc_type_groups
+            }
+        }
+
+
 
 
 
@@ -86,7 +105,7 @@ class NgramResult():
         """
         Computes the result for ngram
 
-        >>> unparsed_search_tokens = 'addiction'
+        >>> unparsed_search_tokens = ['addiction']
         >>> doc_type_filters = []
         >>> collection_filters = []
         >>> availability_filters = []
@@ -140,8 +159,8 @@ class NgramResult():
         ) + 1
 
         # get the parsed search tokens. If there were errors, return them.
-        self.token_list, self.errors = mp_results_queue.get()
-        if len(self.token_list) == 0:
+        self.parsed_search_tokens, self.errors = mp_results_queue.get()
+        if len(self.parsed_search_tokens) == 0:
             print({'error': self.errors})
             return {'error': self.errors}
 
@@ -367,5 +386,12 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
 
 
 if __name__ == "__main__":
-
-    n = NgramResult('test', ['internal_communication'], [1,2], [], [])
+    unparsed_search_tokens = 'addiction'
+    doc_type_filters = []
+    collection_filters = []
+    availability_filters = []
+    term_filters = []
+    globals = get_globals()
+    ngram = NgramResult(doc_type_filters, collection_filters, availability_filters,term_filters, unparsed_search_tokens = unparsed_search_tokens)
+    ngram.compute_result(globals)
+    from IPython import embed; embed()

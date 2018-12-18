@@ -1,3 +1,4 @@
+from IPython import embed
 
 import multiprocessing
 import time
@@ -127,6 +128,9 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
         token_dict['frequencies'] = token_dict['frequencies'].tolist()
 
     print("Time total: ", time.time() - start_time)
+
+    embed()
+
     return {'data': df, 'error': token_search_errors}
 
 
