@@ -3,8 +3,8 @@ import multiprocessing
 import time
 
 import numpy as np
-from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
-from tobacco.utilities.filter_numpy import get_active_filters_np
+from tobacco.frequencies_preprocessing.preprocessing_years_cython import transform_doc_to_year_array
+from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
 
 from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
 from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
@@ -39,9 +39,10 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
     - *Add collections data
     - *Add document type data (including document type groups)
 
-    Sample Query:
-    active_filters = {'doc_type': [], 'collection': [], 'availability': [], 'term': []}
-    result = get_frequencies(['cancer', 'neuro*', 'carcin*'], active_filters, globals, profiling_run=False)
+    >>> globals = get_globals()
+    >>> active_filters = {'doc_type': [], 'collection': [], 'availability': [], 'term': []}
+    >>> result = get_frequencies(['cancer', 'neuro*', 'carcin*'], active_filters, globals, profiling_run=False)
+
     """
 
 

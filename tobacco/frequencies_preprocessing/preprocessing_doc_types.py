@@ -1,4 +1,3 @@
-
 from tobacco.utilities.databases import Database
 from tobacco.configuration import PATH_TOKENIZED, DOC_COUNT, SECTION_COUNT
 from tobacco.frequencies_preprocessing.preprocessing_sections import get_doc_id_to_section_id_dict

@@ -1,16 +1,154 @@
 
-from tobacco.utilities.databases import Database
-from tobacco.utilities.sparse_matrices import store_csr_matrix_to_file, load_csc_matrix_from_file, csc_bool_to_np_cython
-from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_dtype_dict
-from tobacco.frequencies_preprocessing.preprocessing_sections import get_doc_id_to_section_id_dict
-
-from tobacco.configuration import PATH_TOKENIZED, VALID_COLLECTIONS, DOC_COUNT, SECTION_COUNT
-
-
-import numpy as np
 import inspect
 
+import numpy as np
 from scipy.sparse import csc_matrix
+
+from tobacco.configuration import PATH_TOKENIZED, VALID_COLLECTIONS, DOC_COUNT, SECTION_COUNT
+from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_dtype_dict
+from tobacco.frequencies_preprocessing.preprocessing_sections import get_doc_id_to_section_id_dict
+from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
+from tobacco.utilities.databases import Database
+from tobacco.utilities.vector_transformation import csc_bool_to_np_cython
+from tobacco.utilities.sparse_matrices import store_csr_matrix_to_file, load_csc_matrix_from_file
+
+
+def get_active_filters_np(active_filters, FILTERS, return_type=None, docs_or_sections='docs'):
+
+    """ Applies all filters to both the term and a copy of the totals vector and returns them
+
+    6/10/17 Added availability filter.
+    The idea is that every time the availability filter is used, the collection and doc type filters get multiplied with it.
+    That is to say: the availability filter is not used on its own.
+
+    7/25/17 Added term filter
+
+    >>> FILTERS = {
+    >>>     'docs':{
+    >>>         'doc_type': get_doc_type_filters(return_type='csc', docs_or_sections='docs'),
+    >>>         'collection': get_collection_filters(return_type='csc', docs_or_sections='docs'),
+    >>>         'availability': get_availability_filters(return_type='csc', docs_or_sections='docs')
+    >>>     },
+    >>>     'sections':{
+    >>>         'doc_type': get_doc_type_filters(return_type='csc', docs_or_sections='sections'),
+    >>>         'collection': get_collection_filters(return_type='csc', docs_or_sections='sections'),
+    >>>         'availability': get_availability_filters(return_type='csc', docs_or_sections='sections')
+    >>>     }
+    >>> }
+    >>> active_filters = {
+    >>>     'doc_type': {'internal communication'},
+    >>>     'collection': {2,3},
+    >>>     'availability': {'no restrictions'},
+    >>>     'term': {}
+    >>> }
+    >>> doc_type_filter, collection_filter, final_filter = get_active_filters_np(
+    >>>         active_filters=active_filters, FILTERS=FILTERS, return_type=np.uint8,
+    >>>         docs_or_sections='docs')
+
+
+    :param active_filters: dict of lists, e.g. {'doc_type': ["internal communication"], 'collection': [1,2],
+                                                'availability': [], 'term': []}
+    :param FILTERS: Filters from global ??I think they are csc filters ??
+    :param return_type: e.g. np.uint8 or np.int32. By default, the same document type as the input, usually np.uint8
+    :param docs_or_sections: 'docs' or 'sections'
+    :return: doc_type_filter, collection_filter, final_filter
+    """
+
+    if not 'term' in active_filters:
+        active_filters['term'] = {}
+
+    # all filters used here are unweighted
+    # 8/31/18: At some point, I had the idea that a document with 10 document types would give weight 1/10 to each.
+    weighted = False
+    filter_len = DOC_COUNT
+    if docs_or_sections == 'sections':
+        filter_len = SECTION_COUNT
+
+    # process availability filters
+    if len(active_filters['availability']) == 0:
+        availability_filter = None
+    else:
+        availability_filter = None
+        for filter_name in active_filters['availability']:
+            if availability_filter is None:
+                availability_filter = FILTERS[docs_or_sections]['availability'][(filter_name, weighted)].copy()
+            else:
+                availability_filter += FILTERS[docs_or_sections]['availability'][(filter_name, weighted)]
+        availability_filter = csc_bool_to_np_cython(availability_filter)
+
+    # process term filters
+    if len(active_filters['term']) == 0:
+        term_filter = None
+    else:
+        term_filter = None
+        for filter_name in active_filters['term']:
+            if term_filter is None:
+                term_filter = get_ngram_vector(filter_name, return_type='uint8', docs_or_sections='sections')
+            else:
+                term_filter += get_ngram_vector(filter_name, return_type='uint8', docs_or_sections='sections')
+
+    # process doc_type filters
+    if len(active_filters['doc_type']) == 0:
+        doc_type_filter = np.ones(filter_len, dtype='bool')
+    else:
+        doc_type_filter = None
+        for filter_name in active_filters['doc_type']:
+            if doc_type_filter is None:
+
+                f = FILTERS[docs_or_sections]['doc_type'][(filter_name, weighted)]
+                #print(filter_name, type(f), f.dtype)
+
+                doc_type_filter = FILTERS[docs_or_sections]['doc_type'][(filter_name, weighted)].copy()
+            else:
+                doc_type_filter += FILTERS[docs_or_sections]['doc_type'][(filter_name, weighted)]
+
+        # if docs_or_sections == 'sections':
+        doc_type_filter = csc_bool_to_np_cython(doc_type_filter)
+
+    # cast to uint
+    # 8/31/18 Why are they only cast to uint8 here??
+    doc_type_filter.dtype = np.uint8
+
+    # process collection filters
+    if len(active_filters['collection']) == 0:
+        collection_filter = np.ones(filter_len, dtype=np.uint8)
+    else:
+        collection_filter = None
+        for filter_name in active_filters['collection']:
+            if collection_filter is None:
+                collection_filter = FILTERS[docs_or_sections]['collection'][(filter_name, weighted)].copy()
+            else:
+                collection_filter += FILTERS[docs_or_sections]['collection'][(filter_name, weighted)]
+        collection_filter = csc_bool_to_np_cython(collection_filter)
+
+    # Apply term filter to doc type and collection filters
+    if term_filter is not None:
+        doc_type_filter *= term_filter
+        collection_filter *= term_filter
+
+    # Apply availability filter to doc type and collection filters
+    if availability_filter is not None:
+        doc_type_filter *= availability_filter
+        collection_filter *= availability_filter
+
+    # Create final filter
+    if len(active_filters['doc_type']) == 0:
+        final_filter = collection_filter
+    elif len(active_filters['collection']) == 0:
+        final_filter = doc_type_filter
+    else:
+        final_filter = collection_filter * doc_type_filter
+
+    # cast to expected return type, e.g.
+    if return_type:
+        try:
+            doc_type_filter.dtype = return_type
+            collection_filter.dtype = return_type
+            final_filter.dtype = return_type
+        except TypeError:
+            "Can't cast active filters array from {} to {}.".format(final_filter.dtype, return_type)
+
+    return doc_type_filter, collection_filter, final_filter
 
 
 def get_filter(search_term, filter_type, weight=False, return_type='csc', docs_or_sections='docs'):

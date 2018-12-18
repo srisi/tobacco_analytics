@@ -7,8 +7,8 @@ from tobacco.frequencies_preprocessing.preprocessing_filters import get_filters
 
 from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_dtype_dict
 from tobacco.frequencies_preprocessing.preprocessing_totals_cython import create_totals_vector
-from tobacco.utilities.filter_numpy import get_active_filters_np
-from tobacco.utilities.sparse_matrices import csc_to_np_cython
+from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
+from tobacco.utilities.vector_transformation import csc_to_np_int32
 
 
 def get_collection_totals_vectors(docs_or_sections='docs'):
@@ -50,7 +50,7 @@ def get_collection_totals_vector(collection_id, docs_or_sections, return_type='c
         print("Creating totals vector for collection, type: ", collection_id, docs_or_sections)
 
         filters = get_filters(return_type='np')
-        totals_vector = csc_to_np_cython(get_totals_vector(docs_or_sections))
+        totals_vector = csc_to_np_int32(get_totals_vector(docs_or_sections))
         _, active_collection_filters_np, _ = get_active_filters_np(
             active_filters={'doc_type': {}, 'collection': {collection_id}, 'availability': {}}, FILTERS=filters,
             docs_or_sections=docs_or_sections, return_type=np.uint8)
@@ -63,7 +63,7 @@ def get_collection_totals_vector(collection_id, docs_or_sections, return_type='c
     if return_type  == 'csc':
         return csc_matrix(csc, dtype=np.int32)
     else:
-        return csc_to_np_cython(csc)
+        return csc_to_np_int32(csc)
 
 
 def get_doc_type_totals_vectors(docs_or_sections='docs', all_csc=True):
@@ -82,7 +82,7 @@ def get_doc_type_totals_vectors(docs_or_sections='docs', all_csc=True):
 
             print("Creating doc type totals vector for: ", dt, docs_or_sections)
             filters = get_filters(return_type='np')
-            totals_vector = csc_to_np_cython(get_totals_vector(docs_or_sections))
+            totals_vector = csc_to_np_int32(get_totals_vector(docs_or_sections))
             active_doc_type_filters_np, _, _ = get_active_filters_np(
                 active_filters={'doc_type': {dt}, 'collection': {}, 'availability': {}}, FILTERS=filters,
                 docs_or_sections=docs_or_sections, return_type=np.uint8)
@@ -100,10 +100,10 @@ def get_doc_type_totals_vectors(docs_or_sections='docs', all_csc=True):
             # somehow, parsing back to int64 is necessary. don't know why it's in int32 format
 
             if not all_csc:
-                totals[dt] = csc_to_np_cython(csc_matrix(totals[dt], dtype=np.int64))
+                totals[dt] = csc_to_np_int32(csc_matrix(totals[dt], dtype=np.int64))
         if docs_or_sections == 'docs' and dt in {'report', 'letter', 'memo', 'email'}:
             if not all_csc:
-                totals[dt] = csc_to_np_cython(csc_matrix(totals[dt], dtype=np.int64))
+                totals[dt] = csc_to_np_int32(csc_matrix(totals[dt], dtype=np.int64))
 
         if all_csc:
             totals[dt] = csc_matrix(totals[dt], dtype=np.int32)
@@ -129,7 +129,6 @@ def get_totals_vector(docs_or_sections='docs'):
         totals_vector = create_totals_vector(ngram, docs_or_sections)
         totals_vector = csc_matrix(totals_vector, dtype=np.int32)
         store_csr_matrix_to_file(totals_vector, PATH_TOKENIZED + 'totals_{}_{}.npz'.format(ngram, docs_or_sections))
-        #totals_vectors[ngram] = totals_vector
 
     return totals_vector
 

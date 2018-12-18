@@ -3,18 +3,19 @@ Both text passages and frequencies use many of the same globals (filter etc.), s
 
 '''
 
-from tobacco.frequencies_preprocessing.preprocessing_filters import get_doc_type_filters, get_collection_filters, get_availability_filters
-from tobacco.frequencies_preprocessing.preprocessing_totals import get_totals_vector
-from tobacco.frequencies_preprocessing.preprocessing_years import get_year_doc_transformation_matrix
-from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_doc_types_to_idx_dict
-from tobacco.frequencies_preprocessing.preprocessing_collections import get_col_name_and_idx_dict
-from tobacco.utilities.sparse_matrices import csc_to_np_int32
-from tobacco.utilities.ocr import get_vocabulary_totals, load_vocabulary_trie
-from tobacco.frequencies_preprocessing.preprocessing_sections import get_section_to_doc_and_offset_arr
-from tobacco.frequencies_preprocessing.preprocessing_years import get_year_doc_id_list
-
-
 import time
+
+from tobacco.frequencies_preprocessing.preprocessing_collections import get_col_name_and_idx_dict
+from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_doc_types_to_idx_dict
+from tobacco.frequencies_preprocessing.preprocessing_filters import get_doc_type_filters, \
+    get_collection_filters, get_availability_filters
+from tobacco.frequencies_preprocessing.preprocessing_sections import \
+    get_section_to_doc_and_offset_arr
+from tobacco.frequencies_preprocessing.preprocessing_totals import get_totals_vector
+from tobacco.frequencies_preprocessing.preprocessing_years import get_year_doc_id_list
+from tobacco.utilities.ocr import get_vocabulary_totals, load_vocabulary_trie
+from tobacco.utilities.vector_transformation import csc_to_np_int32
+
 
 # csc_to_np for sections takes about 40ms -> load more as csc and use transforms.
 
@@ -88,7 +89,8 @@ def get_globals(globals_type='frequencies'):
         }
     else:
         raise ValueError("only 'frequencies' and 'passages' are valid values for globals_type but not {}".format(globals_type))
-    print("Loading globals in {} mode took: {}".format(globals_type, time.time() - s))
+
+    #print("Loading globals in {} mode took: {}".format(globals_type, time.time() - s))
 
     return globals_dict
 

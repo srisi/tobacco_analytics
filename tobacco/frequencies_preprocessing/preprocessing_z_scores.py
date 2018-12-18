@@ -54,13 +54,26 @@ def get_z_scores(tokens_list, tobacco_totals, mp_results_queue):
     mp_results_queue.put(('z_scores', z_scores))
 
 
-def get_individual_z_score(token_name, tobacco_token_counts, tobacco_totals):
+def get_individual_z_score(token_name: str, tobacco_token_counts: np.ndarray,
+                           tobacco_totals: np.ndarray):
 
     """ Get the annual z scores for one token.
+    >>> from tobacco.frequencies_preprocessing.preprocessing_years_cython import transform_doc_to_year_array
+    >>> from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
+    >>> from tobacco.frequencies_preprocessing.preprocessing_totals import get_totals_vector
+    >>> from tobacco.utilities.vector_transformation import csc_to_np_int32
+    >>> addiction_counts = get_ngram_vector('addiction', return_type='np')
+    >>> addiction_counts_yearly = transform_doc_to_year_array(addiction_counts, 'docs')
+    >>> total_counts = csc_to_np_int32(get_totals_vector('docs'))
+    >>> total_counts_yearly = transform_doc_to_year_array(total_counts, 'docs')
 
-    :param token_name:
-    :param tobacco_token_counts:
-    :param tobacco_totals:
+    >>> z_scores = get_individual_z_score('addiction', addiction_counts_yearly, total_counts_yearly)
+    >>> print(f'Z-score for 1950: {z_scores[50]}')
+    Z-score for 1950: 2.4172451505755848
+
+    :param token_name: str
+    :param tobacco_token_counts: np.ndarray[int], len 116
+    :param tobacco_totals: np.ndarray[int], len 116
     :return:
     """
 
@@ -76,7 +89,7 @@ def get_individual_z_score(token_name, tobacco_token_counts, tobacco_totals):
     return z
 
 
-def get_absolute_google_counts(token_name):
+def get_absolute_google_counts(token_name: str) -> np.ndarray:
 
     """    This function retrieves the absolute counts for a given token from the Google Ngram Viewer.
 
@@ -85,6 +98,9 @@ def get_absolute_google_counts(token_name):
     Then, it multiplies the absolute number of terms in the corpus for any given year with the
     relative frequency of the search token.
 
+    >>> google_counts = get_absolute_google_counts('addiction')
+    >>> print(f'Google counts for addiction in 1950: {google_counts[50]}')
+    Google counts for addiction in 1950: 2482.0
 
     """
 

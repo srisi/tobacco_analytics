@@ -2,8 +2,9 @@ import hashlib
 
 import numpy as np
 from tobacco.configuration import PATH_TOKENS
-from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
-from tobacco.utilities.sparse_matrices import csc_to_np_cython, csc_to_np_uint8
+from tobacco.frequencies_preprocessing.preprocessing_years_cython import transform_doc_to_year_array
+from tobacco.utilities.vector_transformation import csc_to_np_int64, csc_to_np_int32, \
+    csc_to_np_uint8
 from tobacco.utilities.sparse_matrices import load_csc_matrix_from_file
 
 
@@ -33,7 +34,7 @@ def get_ngram_vector(token, return_type='csc', return_sum=False, docs_or_section
     if return_type == 'csc':
         out = csc
     elif return_type == 'np':
-        out = csc_to_np_cython(csc)
+        out = csc_to_np_int64(csc)
     elif return_type == 'uint8':
         out = csc_to_np_uint8(csc)
 
@@ -45,6 +46,69 @@ def get_ngram_vector(token, return_type='csc', return_sum=False, docs_or_section
         return out, token_sum
     else:
         return out
+
+
+def get_tokens_data(token_list, docs_or_sections, active_filters_np, totals_years):
+    """
+    Load counts, frequencies, and totals for each token.
+
+    12/18/18 Implemented for use with the NgramResult class, i.e. it won't return a df but
+    individual vars.
+
+    :param df: The final results dict
+    :param token_list: list of tokens to process
+    :param docs_or_sections: 'docs' or 'sections'
+    :return: result df with added token data
+
+    >>> from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
+    >>> from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
+    >>> globals = get_globals()
+    >>> active_filters = {'doc_type': [], 'collection': [], 'availability': [], 'term': []}
+    >>> _, _, active_filters_np = get_active_filters_np(active_filters, globals['filters'], 'docs', np.uint8)
+    >>> t = get_tokens_data(['addiction'], 'docs', active_filters_np)
+    >>> t
+
+    """
+
+    tokens_data = []
+
+    # The aggregate is the sum of all vectors, used for the collections and document types.
+    aggregate = None
+
+    for token in token_list:
+        # Load token and totals
+        try:
+            loaded_vector = get_ngram_vector(token, return_type='np', docs_or_sections=docs_or_sections)
+
+        except FileNotFoundError:
+            print('Could not load token {}.'.format(token))
+            continue
+
+        # initialize aggregate
+        if aggregate is None:
+            aggregate = loaded_vector.copy()
+        else:
+            aggregate += loaded_vector
+
+        absolute_counts = transform_doc_to_year_array(data=loaded_vector, filter=active_filters_np,
+                                                      docs_or_sections=docs_or_sections)
+
+        tokens_data.append({
+            'token': token,
+            'counts': absolute_counts,
+            'frequencies': absolute_counts / df['totals_years'],
+            'total': int(np.sum(absolute_counts))
+
+        })
+
+    tokens = sorted(tokens_data, key=lambda k: k['total'], reverse=True)
+
+
+    aggregate *= active_filters_np
+    aggregate_years = transform_doc_to_year_array(data=aggregate, docs_or_sections=docs_or_sections)
+
+    return tokens_data, aggregate, aggregate_years
+
 
 
 def get_tokens(df, token_list, docs_or_sections):

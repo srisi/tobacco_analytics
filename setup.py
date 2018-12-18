@@ -19,7 +19,7 @@ def run():
                     #'tobacco.results_storage',
                     #'tobacco.stats',
                     #'tobacco.text_passages',
-                    #'tobacco.utilities'
+                    'tobacco.utilities'
                     ],
           include_package_data=True,
           package_data= {'': ['data.*', 'utilities.*'],},
@@ -28,7 +28,7 @@ def run():
                                  'tobacco/frequencies_preprocessing/*.pyx',
                                  #'tobacco/stats/*.pyx',
                                  #'tobacco/text_passages/*.pyx',
-                                 #'tobacco/utilities/*.pyx'
+                                 'tobacco/utilities/*.pyx'
           ]),
           include_dirs=[np.get_include(), '.'],
           zip_safe=False,

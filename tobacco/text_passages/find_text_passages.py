@@ -6,7 +6,7 @@ import numpy as np
 from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
 from tobacco.text_passages.text_passages_helper_process_year_of_sections import process_year_of_sections_cython
 from tobacco.text_passages.text_passages_helper_search import parse_text_passages_tokens
-from tobacco.utilities.filter_numpy import get_active_filters_np
+from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
 from tobacco.utilities.ocr import load_vocabulary_trie
 
 VOCABULARY = load_vocabulary_trie(1, return_type='set')

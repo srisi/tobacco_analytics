@@ -10,7 +10,7 @@ from tobacco.frequencies_preprocessing.preprocessing_collections import get_coll
 from tobacco.frequencies_preprocessing.preprocessing_filters import get_collection_filters
 from tobacco.frequencies_preprocessing.preprocessing_totals import get_collection_totals_vectors
 from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
-from tobacco.utilities.sparse_matrices import csc_bool_to_np_cython, csc_to_np_int32
+from tobacco.utilities.vector_transformation import csc_bool_to_np_cython, csc_to_np_int32
 
 
 # 8/31/18: I really don't understand why these globals aren't loaded through the globals loader. However, this is

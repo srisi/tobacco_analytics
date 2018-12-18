@@ -9,8 +9,8 @@ from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_doc_ty
     get_doc_types_doc_matrix
 from tobacco.frequencies_preprocessing.preprocessing_filters import get_doc_type_filters
 from tobacco.frequencies_preprocessing.preprocessing_totals import get_doc_type_totals_vectors
-from tobacco.frequencies_preprocessing.preprocessing_years import multiply_and_transform_doc_to_year
-from tobacco.utilities.sparse_matrices import csc_bool_to_np_cython, csc_to_np_int32
+from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
+from tobacco.utilities.vector_transformation import csc_bool_to_np_cython, csc_to_np_int32
 
 # 8/31/18: Why are these globals re-initialized? Here's I think the solution:
 # add_doc_types_mp is accessed by a multiprocessing task. Hence, the globals can't be passed as variables.
@@ -111,7 +111,8 @@ def add_doc_types_mp_worker(dt_name, docs_or_sections, results_queue):
     doc_type_filter = FILTERS[docs_or_sections][(dt_name, False)]
     if type(doc_type_filter) == scipy.sparse.csc.csc_matrix:
         doc_type_filter = csc_bool_to_np_cython(doc_type_filter)
-    absolute = multiply_and_transform_doc_to_year(DF_AGGREGATE, doc_type_filter.view(dtype=np.uint8), docs_or_sections)
+    absolute = transform_doc_to_year_array(data=DF_AGGREGATE,
+                  filter=doc_type_filter.view(dtype=np.uint8), docs_or_sections=docs_or_sections)
     total = int(np.sum(absolute))
     if total == 0:
         results_queue.put({})
@@ -119,8 +120,8 @@ def add_doc_types_mp_worker(dt_name, docs_or_sections, results_queue):
     doc_type_totals = TOTALS[docs_or_sections][dt_name]
     if type(doc_type_totals) == scipy.sparse.csc.csc_matrix:
         doc_type_totals = csc_to_np_int32(doc_type_totals)
-    doc_type_totals_years = multiply_and_transform_doc_to_year(doc_type_totals,
-                                                       DF_ACTIVE_COLLECTION_FILTERS_NP, docs_or_sections) +1
+    doc_type_totals_years = transform_doc_to_year_array(data=doc_type_totals,
+               filter=DF_ACTIVE_COLLECTION_FILTERS_NP, docs_or_sections=docs_or_sections) +1
 
     relative = absolute / doc_type_totals_years
 
