@@ -1,6 +1,7 @@
 
 import multiprocessing as mp
 import time
+from IPython import embed
 
 import numpy as np
 import scipy
@@ -9,14 +10,14 @@ from tobacco.frequencies_preprocessing.preprocessing_doc_types import get_doc_ty
     get_doc_types_doc_matrix
 from tobacco.frequencies_preprocessing.preprocessing_filters import get_doc_type_filters
 from tobacco.frequencies_preprocessing.preprocessing_totals import get_doc_type_totals_vectors
-from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
-from tobacco.utilities.vector_transformation import csc_bool_to_np_cython, csc_to_np_int32
+#from tobacco.frequencies_preprocessing.preprocessing_years_cython import transform_doc_to_year_array
+#from tobacco.utilities.vector_transformation import csc_bool_to_np_cython, csc_to_np_int32
 
 # 8/31/18: Why are these globals re-initialized? Here's I think the solution:
 # add_doc_types_mp is accessed by a multiprocessing task. Hence, the globals can't be passed as variables.
 DOC_TYPE_DOC_MATRIX = {
             'docs': get_doc_types_doc_matrix(docs_or_sections='docs'),                              # 100 MB    uint8
-                'sections': get_doc_types_doc_matrix(docs_or_sections='sections')                   # 900 MB    uint8
+            'sections': get_doc_types_doc_matrix(docs_or_sections='sections')                       # 900 MB    uint8
             }
 DOC_TYPES_AND_IDX_DICT = get_doc_types_to_idx_dict()
 
@@ -109,6 +110,10 @@ def add_doc_types_mp_worker(dt_name, docs_or_sections, results_queue):
     """
 
     doc_type_filter = FILTERS[docs_or_sections][(dt_name, False)]
+
+    if doc_type_filter.datatype == 'csc':
+        embed()
+
     if type(doc_type_filter) == scipy.sparse.csc.csc_matrix:
         doc_type_filter = csc_bool_to_np_cython(doc_type_filter)
     absolute = transform_doc_to_year_array(data=DF_AGGREGATE,

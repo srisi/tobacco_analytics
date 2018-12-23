@@ -1,7 +1,6 @@
 import pickle
 
 from tobacco.configuration import PATH_TOKENIZED, YEAR_COUNT
-from tobacco.frequencies_preprocessing.preprocessing_sections import get_doc_id_to_section_id_dict
 
 
 # def get_year_doc_transformation_matrix(docs_or_sections='docs'):
@@ -77,17 +76,22 @@ def get_year_doc_id_list(docs_or_sections: str) -> list:
     >>> ids_1901 = year_doc_id_list[0]
     >>> print(f'First 1901 doc id: {ids_1901[0]}. Last 1901 doc id: {ids_1901[1]}.')
     First 1901 doc id: 0. Last 1901 doc id: 183.
+    >>> ids_1902 = year_doc_id_list[1]
+    >>> print(f'First 1902 doc id: {ids_1902[0]}. Last 1902 doc id: {ids_1902[1]}.')
+    First 1902 doc id: 184. Last 1902 doc id: 238.
 
     :param docs_or_sections: 'docs' or 'sections'
     :return: list
     """
 
-    doc_id_to_section_id_dict = get_doc_id_to_section_id_dict()
 
     try:
         year_doc_id_list = pickle.load(open(PATH_TOKENIZED + 'year_{}_id_list.pickle'.format(docs_or_sections), 'rb'))
 
     except IOError:
+        from tobacco.frequencies_preprocessing.preprocessing_sections import \
+            get_doc_id_to_section_id_dict
+        doc_id_to_section_id_dict = get_doc_id_to_section_id_dict()
         from tobacco.utilities.databases import Database
 
         print("Creating new year_{}_id_list".format(docs_or_sections))

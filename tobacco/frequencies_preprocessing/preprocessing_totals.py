@@ -10,6 +10,9 @@ from tobacco.frequencies_preprocessing.preprocessing_totals_cython import create
 from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
 from tobacco.utilities.vector_transformation import csc_to_np_int32
 
+from pathlib import Path
+from tobacco.utilities.vector import Vector
+
 
 def get_collection_totals_vectors(docs_or_sections='docs'):
     """ Get the csc totals vectors for every collection
@@ -44,7 +47,8 @@ def get_collection_totals_vector(collection_id, docs_or_sections, return_type='c
     """
 
     try:
-        csc = load_csc_matrix_from_file(PATH_TOKENIZED + 'totals/{}_{}'.format(collection_id, docs_or_sections))
+        return Vector().load_totals_vector(collection_id, 'collection', docs_or_sections, 'csc')
+#        csc = load_csc_matrix_from_file(PATH_TOKENIZED + 'totals/{}_{}'.format(collection_id, docs_or_sections))
     except IOError:
 
         print("Creating totals vector for collection, type: ", collection_id, docs_or_sections)
@@ -73,6 +77,10 @@ def get_doc_type_totals_vectors(docs_or_sections='docs', all_csc=True):
     for dt in (get_dtype_dict()['valid'].union(set(get_dtype_dict()['groups'].keys()))):
 
         try:
+#            file_name = 'totals/{}_{}'.format(dt.replace('/', '_'), docs_or_sections)
+#            file_path = Path(PATH_TOKENIZED, file_name)
+#            totals_vector = Vector().load_from_disk(file_path, return_type=return_type)
+#            totals[dt] = totals_vector
             totals[dt] = load_csc_matrix_from_file(PATH_TOKENIZED + 'totals/{}_{}'.format(dt.replace('/', '_'), docs_or_sections))
         except IOError:
 
@@ -112,7 +120,7 @@ def get_doc_type_totals_vectors(docs_or_sections='docs', all_csc=True):
 
 
 
-def get_totals_vector(docs_or_sections='docs'):
+def get_totals_vector(docs_or_sections='docs', return_type='np_int32'):
     '''
     Only implemented for 1 gram because there's no reason why we would need totals for 2-5 grams
     :return:
@@ -121,16 +129,17 @@ def get_totals_vector(docs_or_sections='docs'):
     ngram = 1
 
     try:
-        totals_vector = load_csc_matrix_from_file(PATH_TOKENIZED + 'totals_{}_{}'.format(ngram, docs_or_sections))
-        if not totals_vector.dtype == np.int32:
-            totals_vector = csc_matrix(totals_vector, dtype=np.int32)
+        file_name = 'totals_{}_{}'.format(ngram, docs_or_sections)
+        file_path = Path(PATH_TOKENIZED, file_name)
+        totals_vector = Vector().load_from_disk(file_path, return_type=return_type)
+        return totals_vector
+
     except IOError:
 
         totals_vector = create_totals_vector(ngram, docs_or_sections)
         totals_vector = csc_matrix(totals_vector, dtype=np.int32)
         store_csr_matrix_to_file(totals_vector, PATH_TOKENIZED + 'totals_{}_{}.npz'.format(ngram, docs_or_sections))
-
-    return totals_vector
+        return get_totals_vector(docs_or_sections, return_type)
 
 
 if __name__ == "__main__":
