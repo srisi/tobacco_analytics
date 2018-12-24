@@ -252,18 +252,6 @@ def transform_doc_to_year_int32_with_filter_csc(vector, filter_vec):
     return years
 
 
-
-    for year_id in range(YEAR_COUNT):
-        start_id, end_id = YEAR_PARTS_ID_LIST[docs_or_sections][year_id]
-        year_sum = 0
-        for doc_id in range(start_id, end_id + 1):
-            if filter[doc_id]:
-                year_sum += data[doc_id]
-        years[year_id] = year_sum
-
-    return years
-
-
 @wraparound(False)
 @boundscheck(False)
 def transform_doc_to_year_int32_no_filter(vector):
@@ -490,15 +478,17 @@ def transform_doc_to_year_csc_with_filter_csc(vector, filter_vec):
                 and cur_indices_idx < len_indices and cur_filter_indices_idx < len_filter_indices):
 
 
+
             year_sum = 0
             while True:
+#                print(cur_doc_idx, cur_filter_doc_idx, cur_indices_idx, cur_filter_indices_idx, len_indices, len_filter_indices)
                 if cur_doc_idx > end_id or cur_filter_doc_idx > end_id:
                     break
                 else:
                     year_sum += data[cur_indices_idx]
                     cur_indices_idx += 1
                     cur_filter_indices_idx += 1
-                    if len_indices >= cur_indices_idx or len_filter_indices >= cur_filter_indices_idx:
+                    if len_indices <= cur_indices_idx or len_filter_indices <= cur_filter_indices_idx:
                         break
 
                     # find next intersecting element
@@ -507,6 +497,7 @@ def transform_doc_to_year_csc_with_filter_csc(vector, filter_vec):
                         cur_filter_doc_idx = filter_indices[cur_filter_indices_idx]
 
                         while True:
+
                             if cur_doc_idx == cur_filter_doc_idx:
                                 break
                             elif cur_doc_idx < cur_filter_doc_idx:

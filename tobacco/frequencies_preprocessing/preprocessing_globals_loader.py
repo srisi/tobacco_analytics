@@ -15,6 +15,7 @@ from tobacco.frequencies_preprocessing.preprocessing_totals import get_totals_ve
 from tobacco.frequencies_preprocessing.preprocessing_years import get_year_doc_id_list
 from tobacco.utilities.ocr import get_vocabulary_totals, load_vocabulary_trie
 from tobacco.utilities.vector_transformation import csc_to_np_int32
+from tobacco.frequencies_preprocessing.preprocessing_totals import get_collection_totals_vectors
 
 
 
@@ -50,11 +51,15 @@ def get_globals(globals_type='frequencies', load_only_docs=False):
                         'np': get_totals_vector(docs_or_sections='docs', return_type='np_int32'),        # 43 MB
                     },
                 },
+                'collection':{
+                    'docs': get_collection_totals_vectors(docs_or_sections='docs')
+                }
             },
 
             'vocabulary_totals': get_vocabulary_totals(1),
             'vocabulary_trie': load_vocabulary_trie(1),  # 1 MB
             'vocabulary_set': load_vocabulary_trie(1, return_type='set'),  # 15 MB
+            'collections_and_idx_dict': get_col_name_and_idx_dict(),
 
             'year_parts_id_list': {
                 'docs': get_year_doc_id_list('docs'),  # 45 MB
@@ -70,7 +75,7 @@ def get_globals(globals_type='frequencies', load_only_docs=False):
             globals_dict['totals']['totals']['sections'] = {}
             globals_dict['totals']['totals']['sections']['np'] = get_totals_vector(docs_or_sections='sections', return_type='csc')  # 341 MB
             globals_dict['year_parts_id_list']['sections'] = get_year_doc_id_list('sections')           # 1 MB ??this seems wrong ??
-
+            globals_dict['totals']['collection']['sections'] = get_collection_totals_vectors(docs_or_sections='sections')
 
 
 

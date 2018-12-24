@@ -13,8 +13,8 @@ from tobacco.frequencies_preprocessing.preprocessing_search import parse_search_
 from tobacco.frequencies_preprocessing.preprocessing_tokens import get_tokens
 from tobacco.frequencies_preprocessing.preprocessing_z_scores import get_z_scores
 from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
-from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
-from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
+#from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
+#from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
 from tobacco.utilities.hash import generate_hash
 
 from tobacco.configuration import SECTION_COUNT, DOC_COUNT
@@ -104,6 +104,7 @@ class NgramResult():
         return {'doc_type': self.doc_type_filters, 'collection': self.collection_filters,
                 'availability': self.availability_filters, 'term': self.term_filters}
 
+    @profile
     def compute_result(self, globals, profiling_run=False):
         """
         Computes the result for ngram
@@ -151,7 +152,7 @@ class NgramResult():
 
         # create a total count per year array. Add 1 to totals to avoid division by 0 errors.
         totals_vector = globals['totals']['totals'][self.docs_or_sections]['np']
-        self.totals_years = totals_vector.convert_to_year_array(filter=self.combined_filters_np) + 1
+        self.totals_years = totals_vector.convert_to_year_array(filter_vec=self.combined_filters_np) + 1
 
         # get the parsed search tokens. If there were errors, return them.
         self.parsed_search_tokens, self.errors = mp_results_queue.get()
@@ -164,8 +165,13 @@ class NgramResult():
         #  tokens), aggregate_years (aggregate as years vector)
         self._compute_add_tokens_data()
 
-        print(self.aggregate)
-        embed()
+        # add collections data
+
+        self._compute_add_collection_data(globals)
+
+
+        for i in self.collections:
+            print(i)
 
 
         return
@@ -359,30 +365,32 @@ class NgramResult():
             else:
                 self.aggregate += loaded_vector
 
-            absolute_counts = loaded_vector.convert_to_year_array(filter=self.combined_filters_np)
+            absolute_counts = loaded_vector.convert_to_year_array(filter_vec=self.combined_filters_np)
 
             self.tokens_data.append({
                 'token': token,
                 'counts': absolute_counts,
                 'frequencies': absolute_counts / self.totals_years,
-                'total': absolute_counts.sum()
+                'total': absolute_counts.sum
             })
-            print(absolute_counts.sum(), type(absolute_counts.sum()))
 
         self.tokens_data = sorted(self.tokens_data, key=lambda k: k['total'], reverse=True)
         self.aggregate.filter_with(self.combined_filters_np)
-        self.aggregate_csc = self.aggregate.copy()
-        self.aggregate_csc = self.aggregate_csc.convert_to_datatype('csc')
+        self.aggregate_csc = self.aggregate.copy().convert_to_datatype('csc')
+        print(self.aggregate_csc)
+#        self.aggregate_csc.convert_to_datatype('csc')
+        #embed()
 
 
     def _compute_add_collection_data(self, globals):
 
         # Sort filters by number of documents they represent
         filter_sums = []
-        for filter_name in globals['filters'][self.docs_or_sections]:
+        for filter_name in globals['filters'][self.docs_or_sections]['collection']:
             if filter_name == ('msa_bat', False):
                 continue
-            filter = globals['filters'][self.docs_or_sections][filter_name]
+
+            filter = globals['filters'][self.docs_or_sections]['collection'][filter_name]
             if filter.sum > 0:
                 filter_sums.append((filter_name, filter.sum))
         filter_sums_sorted = sorted(filter_sums, key=lambda x: x[1], reverse=True)
@@ -393,11 +401,11 @@ class NgramResult():
 
             # if a filter's total is lower than the highest included filtered collection -> skip becaus
             # it has no chance of getting included.
-            filter = globals['filters'][self.docs_or_sections][filter_name]
+            filter = globals['filters'][self.docs_or_sections]['collection'][filter_name]
             if len(cols_filtered) > 9 and cols_filtered[8]['total'] > filter_sum:
                 continue
 
-            col_filtered = .convert_to_year_array(filter_vec=filter)
+            col_filtered = self.aggregate_csc.convert_to_year_array(filter_vec=filter)
             cols_filtered = cols_filtered[:9]
 
             cols_filtered.append({
@@ -405,6 +413,7 @@ class NgramResult():
                 'absolute_counts': col_filtered,
                 'total': col_filtered.sum
             })
+#            embed()
             if len(cols_filtered) >= 9:
                 cols_filtered = sorted(cols_filtered, key=lambda x: x['total'], reverse=True)
 
@@ -414,18 +423,23 @@ class NgramResult():
 
         for col in cols_filtered:
             name = col['name']
-            collection_totals = globals['totals'][self.docs_or_sections][name]
+            collection_totals = globals['totals']['collection'][self.docs_or_sections][name]
             collection_totals_filtered = collection_totals.convert_to_year_array(
                 filter_vec=self.doc_type_filters_np)
             relative_frequencies = col['absolute_counts'] / collection_totals_filtered
 
             results.append({
-                'token': COLLECTIONS_AND_IDX_DICT[name]['name_short'],
+                'token': globals['collections_and_idx_dict'][name]['name_short'],
                 'counts': col['absolute_counts'],
                 'frequencies': relative_frequencies,
                 'total': col['total']
             })
-        for i in results: print(i)
+#            embed()
+
+        self.collections = results
+
+        #for i in results: print(i)
+
 
 
 def get_frequencies(search_tokens, active_filters, globals, profiling_run=False):
@@ -483,7 +497,7 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
 
     # create a total count per year array. Add 1 to totals to avoid division by 0 errors.
     df['totals_years'] = globals['totals']['totals'][docs_or_sections]['np'].convert_to_year_array(
-        filter=df['active_filters_np'], docs_or_sections=docs_or_sections)
+        filter_vec=df['active_filters_np'], docs_or_sections=docs_or_sections)
 #    df['totals_years'] = transform_doc_to_year_array(data=globals['totals']['totals'][docs_or_sections]['np'],
 #                                                filter=df['active_filters_np'], docs_or_sections=docs_or_sections) + 1
 

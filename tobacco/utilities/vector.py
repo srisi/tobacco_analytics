@@ -259,8 +259,11 @@ class Vector:
                 self._nnz = count_nonzero_int32(self.vector)
             elif self.datatype == 'np_uint8':
                 self._nnz = count_nonzero_uint8(self.vector)
+            elif self.datatype == 'np_float32' or self.datatype == 'np_float64':
+                self._nnz = np.count_nonzero(self.vector)
             else:
-                raise NotImplementedError("only implemented for csc, int32, and uint8.")
+                raise NotImplementedError("only implemented for csc, int32, and uint8 but not"
+                                          f" {self.datatype}.")
 
         return self._nnz
 
@@ -280,7 +283,7 @@ class Vector:
         elif arr_type == np.int32:
             self.datatype = 'np_int32'
         elif arr_type == np.float64:
-            self.datatype = 'np.float64'
+            self.datatype = 'np_float64'
         elif arr_type == np.uint8:
             self.datatype = 'np_uint8'
         else:
@@ -290,7 +293,7 @@ class Vector:
     def convert_to_datatype(self, output_datatype):
 
         if output_datatype == self.datatype:
-            return
+            return self
 
         if self.datatype == 'csc':
 
@@ -326,6 +329,8 @@ class Vector:
         else:
             raise NotImplementedError(f'Vector conversion from {self.datatype} to '
                                       f'{output_datatype} are not available')
+
+        return self
 
     def convert_to_year_array(self, filter_vec=None, copy=True):
         """
@@ -614,6 +619,8 @@ if __name__ == '__main__':
 
 
     z = v_csc.convert_to_year_array(filter_csc)
+    print(z)
+    print(len(np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)), np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)[:100])
 #    print(v_docs)
 #    print(filter_csc)
 #    a = v_docs.convert_to_year_array(filter_csc)
