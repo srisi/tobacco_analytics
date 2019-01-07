@@ -12,7 +12,7 @@ from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_g
 from tobacco.frequencies_preprocessing.preprocessing_search import parse_search_tokens
 from tobacco.frequencies_preprocessing.preprocessing_tokens import get_tokens
 from tobacco.frequencies_preprocessing.preprocessing_z_scores import get_z_scores
-from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
+#from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
 #from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
 #from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
 from tobacco.utilities.hash import generate_hash
@@ -105,7 +105,7 @@ class NgramResult():
                 'availability': self.availability_filters, 'term': self.term_filters}
 
     @profile
-    def compute_result(self, globals, profiling_run=False):
+    def compute_result(self, globals):
         """
         Computes the result for ngram
 
@@ -165,63 +165,35 @@ class NgramResult():
         #  tokens), aggregate_years (aggregate as years vector)
         self._compute_add_tokens_data()
 
-        # add collections data
+        # Second round of multiprocessing: calculate z-scores while adding collections and doc types
+        multiprocessing.Process(target=get_z_scores, args=(self.tokens_data, self.totals_years,
+                                                           mp_results_queue)).start()
 
+        # add collections data
         self._compute_add_collection_data(globals)
 
-
+        print("Collections")
         for i in self.collections:
             print(i)
 
-
-        return
-
-        # Second round of multiprocessing: calculate z-scores, collection and doc type data
-        multiprocessing.Process(target=get_z_scores, args=(self.tokens_data, self.totals_years,
-                                                           mp_results_queue)).start()
-        multiprocessing.Process(target=add_doc_types_mp, args=(self.aggregate,
-                                                               self.collection_filters_np,
-                                                               self.docs_or_sections,
-                                                               mp_results_queue)).start()
-        multiprocessing.Process(target=add_collections_mp, args=(self.aggregate,
-                                                                 self.doc_type_filters_np,
-                                                                 self.docs_or_sections,
-                                                                 mp_results_queue)).start()
-
-        # for profiling purposes, make the multiprocessing parts use a single process
-        # otherwise, profiling with the line profiler doesn't work.
-        if profiling_run:
-            test_queue = multiprocessing.Queue()
-            add_collections_mp(self.aggregate, self.doc_type_filters_np,
-                               self.docs_or_sections, test_queue)
-            cols = test_queue.get()
-
-            add_doc_types_mp(self.aggregate, self.collection_filters_np,
-                             self.docs_or_sections, test_queue)
-            doc_types_mp = test_queue.get()
-            doc_type_groups_mp = test_queue.get()
+        # add document type and document type group data
+        self._compute_add_doc_type_data(globals)
 
         # release memory of variables that are no longer used
         self.aggregate = None
+        self.aggregate_csc = None
         self.totals_years = None
         self.combined_filters_np = None
         self.collection_filters_np = None
         self.doc_type_filters_np = None
 
-        for i in range(4):
-            mp_result = mp_results_queue.get()
-            if mp_result[0] == 'z_scores':
-                z_scores = mp_result[1]
-                for token_id in range(len(z_scores)):
-                    self.tokens_data[token_id]['z_scores'] = z_scores[token_id].tolist()
-            else:
-                setattr(self, mp_result[0], mp_result[1])
 
-        for token_dict in self.tokens_data:
-            token_dict['counts'] = token_dict['counts'].tolist()
-            token_dict['frequencies'] = token_dict['frequencies'].tolist()
+        mp_result = mp_results_queue.get()
+        z_scores = mp_result[1]
+        for token_id in range(len(z_scores)):
+            self.tokens_data[token_id]['z_scores'] = z_scores[token_id].tolist()
 
-
+    @profile
     def _compute_set_active_filters_np(self, globals):
 
         """ Applies all filters to both the term and a copy of the totals vector and sets them
@@ -256,6 +228,7 @@ class NgramResult():
 
         :return: None
         """
+
         filters = globals['filters'][self.docs_or_sections]
 
         if not 'term' in self.active_filters:
@@ -336,7 +309,6 @@ class NgramResult():
             self.combined_filters_np = self.collection_filters_np.filter_with(self.doc_type_filters_np,
                                                                    return_copy=True)
 
-
     def _compute_add_tokens_data(self):
         """
         Load counts, frequencies, and totals for each token.
@@ -377,9 +349,6 @@ class NgramResult():
         self.tokens_data = sorted(self.tokens_data, key=lambda k: k['total'], reverse=True)
         self.aggregate.filter_with(self.combined_filters_np)
         self.aggregate_csc = self.aggregate.copy().convert_to_datatype('csc')
-        print(self.aggregate_csc)
-#        self.aggregate_csc.convert_to_datatype('csc')
-        #embed()
 
 
     def _compute_add_collection_data(self, globals):
@@ -404,9 +373,10 @@ class NgramResult():
             filter = globals['filters'][self.docs_or_sections]['collection'][filter_name]
             if len(cols_filtered) > 9 and cols_filtered[8]['total'] > filter_sum:
                 continue
+            cols_filtered = cols_filtered[:9]
 
             col_filtered = self.aggregate_csc.convert_to_year_array(filter_vec=filter)
-            cols_filtered = cols_filtered[:9]
+
 
             cols_filtered.append({
                 'name': filter_name[0],
@@ -434,12 +404,70 @@ class NgramResult():
                 'frequencies': relative_frequencies,
                 'total': col['total']
             })
-#            embed()
 
         self.collections = results
 
-        #for i in results: print(i)
 
+    def _compute_add_doc_type_data(self, globals):
+
+
+        # Second, add all of the doc_type_groups
+        dts = []
+        for dt_group_name in ['internal communication', 'marketing documents',
+                                    'internal scientific reports',
+                                    'news reports', 'scientific publications', 'court documents']:
+            dt = {'token': dt_group_name}
+            dt_group_filter = globals['filters'][self.docs_or_sections]['doc_type'][(dt_group_name,
+                                                                                     False)]
+            agg_filtered_with_dt = self.aggregate_csc.convert_to_year_array(filter_vec=dt_group_filter)
+            dt['absolute_counts'] = agg_filtered_with_dt
+            dt['total'] = agg_filtered_with_dt.sum
+            dt_group_totals = globals['totals']['doc_type'][self.docs_or_sections][dt_group_name]
+            dt_group_totals_filtered = dt_group_totals.convert_to_year_array(
+                filter_vec=self.collection_filters_np)
+            freqs = dt['absolute_counts'] / dt_group_totals_filtered
+            freqs.vector = np.nan_to_num(freqs.vector)
+            dt['frequencies'] = freqs
+            dts.append(dt)
+
+        # Second, find the 9 most frequent document types to process
+        dts_filtered = []
+        for i in range(275):
+            dt_name = globals['doc_type_and_idx_dict'][i]
+
+            # 1/2019: the following dts are missing: 99 journal, 208 magazine,
+            # 230 report - clinical study, 243 paper, 248 non printable/unable
+            # 264 conference proceedings. Unclear why but these are small collections so it
+            # shouldn't matter.
+            try:
+                dt_filter = globals['filters'][self.docs_or_sections]['doc_type'][(dt_name, False)]
+            except:
+                print(i, dt_name)
+                continue
+            dt_filter_sum = dt_filter.sum
+            if len(dts_filtered) > 9 and dts_filtered[8]['total'] > dt_filter_sum:
+                continue
+            dts_filtered = dts_filtered[:9]
+
+            agg_filtered_with_dt = self.aggregate_csc.convert_to_year_array(filter_vec=dt_filter)
+            dts_filtered.append({
+                'name': dt_name,
+                'absolute_counts': agg_filtered_with_dt,
+                'total': agg_filtered_with_dt.sum
+            })
+            if len(dts_filtered) >= 9:
+                dts_filtered = sorted(dts_filtered, key=lambda x:x['total'], reverse=True)
+
+        for dt in dts_filtered:
+            dt_totals = globals['totals']['doc_type'][self.docs_or_sections][dt['name']]
+            dt_totals_filtered = dt_totals.convert_to_year_array(filter_vec=
+                                                                 self.collection_filters_np)
+            freqs = dt['absolute_counts'] / dt_totals_filtered
+            freqs.vector = np.nan_to_num(freqs.vector)
+            dt['frequencies'] = freqs
+            dts.append(dt)
+
+        self.doc_types = dts
 
 
 def get_frequencies(search_tokens, active_filters, globals, profiling_run=False):
@@ -552,7 +580,6 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
 
 
     for token_dict in df['tokens']:
-        token_dict['counts'] = token_dict['counts'].tolist()
         token_dict['frequencies'] = token_dict['frequencies'].tolist()
 
     print("Time total: ", time.time() - start_time)
@@ -563,13 +590,17 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
 
 
 if __name__ == "__main__":
-    unparsed_search_tokens = ['addiction']
-    doc_type_filters = []
-    collection_filters = []
+    unparsed_search_tokens = ['addic*']
+    doc_type_filters = ['letter']
+    collection_filters = [5,6,7]
     availability_filters = []
     term_filters = []
+
+    doc_type_filters = []
+    collection_filters = []
+
     globals = get_globals(load_only_docs=True)
     ngram = NgramResult(doc_type_filters, collection_filters, availability_filters,term_filters,
                         unparsed_search_tokens = unparsed_search_tokens)
-    ngram.compute_result(globals, profiling_run=True)
+    ngram.compute_result(globals)
 

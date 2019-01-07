@@ -15,7 +15,8 @@ from tobacco.frequencies_preprocessing.preprocessing_totals import get_totals_ve
 from tobacco.frequencies_preprocessing.preprocessing_years import get_year_doc_id_list
 from tobacco.utilities.ocr import get_vocabulary_totals, load_vocabulary_trie
 from tobacco.utilities.vector_transformation import csc_to_np_int32
-from tobacco.frequencies_preprocessing.preprocessing_totals import get_collection_totals_vectors
+from tobacco.frequencies_preprocessing.preprocessing_totals import get_collection_totals_vectors, \
+    get_doc_type_totals_vectors
 
 
 
@@ -53,6 +54,9 @@ def get_globals(globals_type='frequencies', load_only_docs=False):
                 },
                 'collection':{
                     'docs': get_collection_totals_vectors(docs_or_sections='docs')
+                },
+                'doc_type': {
+                    'docs': get_doc_type_totals_vectors(docs_or_sections='docs')
                 }
             },
 
@@ -60,6 +64,7 @@ def get_globals(globals_type='frequencies', load_only_docs=False):
             'vocabulary_trie': load_vocabulary_trie(1),  # 1 MB
             'vocabulary_set': load_vocabulary_trie(1, return_type='set'),  # 15 MB
             'collections_and_idx_dict': get_col_name_and_idx_dict(),
+            'doc_type_and_idx_dict': get_doc_types_to_idx_dict(),
 
             'year_parts_id_list': {
                 'docs': get_year_doc_id_list('docs'),  # 45 MB
@@ -76,11 +81,9 @@ def get_globals(globals_type='frequencies', load_only_docs=False):
             globals_dict['totals']['totals']['sections']['np'] = get_totals_vector(docs_or_sections='sections', return_type='csc')  # 341 MB
             globals_dict['year_parts_id_list']['sections'] = get_year_doc_id_list('sections')           # 1 MB ??this seems wrong ??
             globals_dict['totals']['collection']['sections'] = get_collection_totals_vectors(docs_or_sections='sections')
+            globals_dict['totals']['doc_type']['sections'] = get_doc_type_totals_vectors(docs_or_sections='sections')
 
-
-
-
-#     if globals_type == 'frequencies':
+    #     if globals_type == 'frequencies':
 #         globals_dict = {
 #             'filters':{
 #                 'docs':{

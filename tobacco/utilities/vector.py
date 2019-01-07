@@ -440,7 +440,6 @@ class Vector:
             self._sum = None
             self.vector *= filter.vector
 
-
     def load_token_vector(self, token, return_type='np_int32', docs_or_sections='docs'):
         """
         Load a token vector from disk
@@ -518,7 +517,6 @@ class Vector:
         file_path = Path(PATH_TOKENIZED, 'totals', file_name)
         return self.load_from_disk(file_path, return_type=return_type)
 
-
     def load_from_disk(self, file_path, return_type):
         """
         >>> x = Vector()
@@ -592,44 +590,47 @@ if __name__ == '__main__':
 
     pass
 
-    v = Vector().load_token_vector('addiction', return_type='np_int32', docs_or_sections='docs')
-    v_csc = Vector().load_token_vector('addiction', return_type='csc', docs_or_sections='docs')
-    v_docs = Vector().load_token_vector('addiction', return_type='np_int32', docs_or_sections='docs')
+    # v = Vector().load_token_vector('addiction', return_type='np_int32', docs_or_sections='docs')
+    # v_csc = Vector().load_token_vector('addiction', return_type='csc', docs_or_sections='docs')
+    # v_docs = Vector().load_token_vector('addiction', return_type='np_int32', docs_or_sections='docs')
 
+    v_sec = Vector().load_token_vector('nicotine', return_type='np_uint8', docs_or_sections='sections')
+    print(v_sec)
 
-    filter_int32 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-                                             return_type='np_int32')
-    filter_uint8 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-                                             return_type='np_uint8')
-    filter_csc = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-                                             return_type='csc')
+    f1 = Vector().load_filter_vector(search_term=5, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
+    f2 = Vector().load_filter_vector(search_term=6, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
+    f3 = Vector().load_filter_vector(search_term=7, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
 
-    filter_int32 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-                                             return_type='np_int32')
-    filter_uint8 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-                                             return_type='np_uint8')
-    filter_csc = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-                                             return_type='csc')
-
-#    v_csc =
-
-#    x = v_csc.convert_to_year_array(filter_uint8)
-#    y = v_csc.convert_to_year_array(filter_int32)
-
-
-
-    z = v_csc.convert_to_year_array(filter_csc)
-    print(z)
-    print(len(np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)), np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)[:100])
-#    print(v_docs)
-#    print(filter_csc)
-#    a = v_docs.convert_to_year_array(filter_csc)
-
-    print(x == y, y == z, z == a)
-
-    from IPython import get_ipython
-    ipython = get_ipython()
-    ipython.magic('%timeit v_csc.convert_to_year_array(filter_uint8)')
-    ipython.magic('%timeit v_csc.convert_to_year_array(filter_int32)')
-    ipython.magic('%timeit v_csc.convert_to_year_array(filter_csc)')
-    ipython.magic('%timeit v_docs.convert_to_year_array(filter_uint8)')
+    x = f1
+    x += f2
+    x += f3
+#
+#     filter_int32 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
+#                                              return_type='np_int32')
+#     filter_uint8 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
+#                                              return_type='np_uint8')
+#     filter_csc = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
+#                                              return_type='csc')
+#
+#     filter_int32 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
+#                                              return_type='np_int32')
+#     filter_uint8 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
+#                                              return_type='np_uint8')
+#     filter_csc = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
+#                                              return_type='csc')
+#
+# #    v_csc =
+#
+# #    x = v_csc.convert_to_year_array(filter_uint8)
+# #    y = v_csc.convert_to_year_array(filter_int32)
+#
+#
+#
+#     z = v_csc.convert_to_year_array(filter_csc)
+#     print(z)
+#     print(len(np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)), np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)[:100])
+# #    print(v_docs)
+# #    print(filter_csc)
+# #    a = v_docs.convert_to_year_array(filter_csc)
+#
+#     print(x == y, y == z, z == a)
