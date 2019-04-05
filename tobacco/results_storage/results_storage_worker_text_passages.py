@@ -8,7 +8,7 @@ from collections import Counter
 from tobacco.configuration import RESULTS_DB_NAME
 from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
 from tobacco.results_storage.results_storage_redis import Redis_Con
-from tobacco.text_passages.find_text_passages_mysql3 import find_text_passages
+#from tobacco.text_passages.find_text_passages_mysql3 import find_text_passages
 from tobacco.text_passages.text_passages_helper_distinctive_terms import get_text_passages_totals, \
     calculate_distinctive_terms
 from tobacco.text_passages.text_passages_helper_topic_model import calculate_topic_model

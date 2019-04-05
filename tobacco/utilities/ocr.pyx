@@ -25,7 +25,9 @@ def load_vocabulary_trie(ngram, return_type='trie'):
 
     # In Py 3.6, vocabulary is already a set. Somehow...
     if return_type == 'set':
-        return vocabulary
+        return set(vocabulary.keys())
+
+#        return vocabulary
     return vocabulary
 
 def vocabulary_trie_to_set():

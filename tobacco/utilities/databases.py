@@ -21,6 +21,9 @@ RESULTS_LOCAL = get_secret('db_results_local_config')
 
 RESULTS_RDS= get_secret('db_results_rds_config')
 
+# in case of socket failure at /tmp/mysql.sock, set symbolic link to actualy socket dir:
+# ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock
+
 
 class Database:
     # for future reference: this is fucking inefficient, and, yes, you should clean it up (use parameter directly)

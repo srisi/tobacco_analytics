@@ -28,7 +28,7 @@ else:
 # Which results db to use--local or RDS
 # to switch to local rds server, set results_db_name to RESULTS_LOCAL
 # this would make more sense to change to REDIS_DB_NAME but then I'd have to track them down...
-RESULTS_DB_NAME = 'RESULTS_RDS'
+RESULTS_DB_NAME = 'RESULTS_LOCAL'
 if RESULTS_DB_NAME == 'RESULTS_LOCAL' and CURRENT_MACHINE == 'local':
     REDIS_HOST = 'localhost'
 else:

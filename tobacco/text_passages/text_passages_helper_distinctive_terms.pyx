@@ -59,7 +59,7 @@ def calculate_distinctive_terms(np.ndarray[long, ndim=1] passage_totals, list ou
         if len(token.split()) >= 2:
             for token_split in token.split():
                 try:
-                    token_id = VOCABULARY_TRIE[token]
+                    token_id = VOCABULARY_TRIE[token_split]
                     passage_totals[token_id] = 0
                 except KeyError: pass
 

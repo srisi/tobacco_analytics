@@ -9,11 +9,11 @@ from tobacco.text_passages.text_passages_helper_process_doc import get_final_sec
 from tobacco.frequencies_preprocessing.preprocessing_docs import get_ocr_sections
 
 def process_year_of_sections_cython(str first_token, list tokens, list search_regexes, token_vector, int year,
-                                    int passage_length, active_filters, set vocabulary, globals):
+                                    int passage_length, active_filters, set vocabulary, globals,
+                                    insert_result_to_db=True):
     """ Processes one year of a text passage search and returns them.
 
     """
-
 
 
     cdef bytearray first_token_encoded = bytearray(first_token.encode('utf-8'))
@@ -26,9 +26,9 @@ def process_year_of_sections_cython(str first_token, list tokens, list search_re
 
     cdef list tokens_with_removed_wildcards = [token.replace('*', '') for token in tokens]
 
-    doc_ids_and_offsets, total_sections = get_doc_ids_and_offsets(token_vector, year, globals['year_parts_id_list']['sections'],
-                                                                  globals['section_to_doc_and_offset_arr'])
-
+    doc_ids_and_offsets, total_sections = get_doc_ids_and_offsets(token_vector, year,
+                                                      globals['year_parts_id_list']['sections'],
+                                                      globals['section_to_doc_and_offset_arr'])
 
 
     if total_sections < 2000:
@@ -83,8 +83,9 @@ def process_year_of_sections_cython(str first_token, list tokens, list search_re
     if len(output_sections) > 5000:
         output_sections = random.sample(output_sections, 5000)
 
-    p = multiprocessing.Process(target=insert_passages_yearly_result, args=(tokens, active_filters, year, passage_length, complete, output_sections))
-    p.start()
+    if insert_result_to_db:
+        p = multiprocessing.Process(target=insert_passages_yearly_result, args=(tokens, active_filters, year, passage_length, complete, output_sections))
+        p.start()
 
     return output_sections
 

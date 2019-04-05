@@ -3,6 +3,7 @@ from scipy.sparse import csc_matrix
 from pathlib import Path
 from typing import Union, Tuple
 import hashlib
+import re
 
 from tobacco.configuration import YEAR_COUNT, DOC_COUNT, SECTION_COUNT, PATH_TOKENS, PATH_TOKENIZED
 from IPython import embed
@@ -517,6 +518,61 @@ class Vector:
         file_path = Path(PATH_TOKENIZED, 'totals', file_name)
         return self.load_from_disk(file_path, return_type=return_type)
 
+
+    def load_page_number_vector(self, name, return_type='np_uint8'):
+        """
+        Loads a vector with either a prescribed minimum or maximum number of pages
+
+        >>> x = Vector().load_page_number_vector('max_5')
+        >>> x
+        <Document Vector of type np_uint8 with 9404609 elements and length 11303161.>
+
+        :param name:
+        :return:
+        """
+
+        if not re.match('(min|max)_[1-9]\d*', name):
+            raise ValueError("Page number vectors need to start with min/max followed by an"
+                             " underscore and a number, e.g. min_10 (minimum 10 pages) or max_5 "
+                             "(max 5 pages).")
+
+        file_path = Path(PATH_TOKENIZED, 'filters', f'{name}.npy')
+        print(file_path)
+        if not file_path.exists():
+
+            from tobacco.utilities.databases import Database
+            import operator
+            if name.startswith('min'):
+                op = operator.ge
+            else:
+                op = operator.le
+            num = int(name[4:])
+
+            db = Database('TOB_FULL')
+            con, cur = db.connect()
+            print('con')
+            cur.execute('SELECT id, pages from docs order by id asc')
+
+            arr = np.zeros(DOC_COUNT, dtype=np.uint8)
+            rowid = 0
+            while True:
+                row = cur.fetchone()
+                if not row:
+                    break
+                if not row['pages']: row['pages'] = 0
+                assert rowid == row['id']
+                if op(row['pages'], num):   # if pagenumber >= or <= specified number
+                    arr[rowid] = 1
+                rowid += 1
+
+            v = Vector(arr)
+            v.save_to_disk(file_path)
+
+        return self.load_from_disk(file_path, return_type)
+
+
+
+
     def load_from_disk(self, file_path, return_type):
         """
         >>> x = Vector()
@@ -567,7 +623,7 @@ class Vector:
         if isinstance(file_path, str):
             file_path = Path(file_path)
 
-        if not Path.exists(file_path):
+        if not Path.exists(file_path.parent):
             Path.mkdir(file_path.parent, parents=True)
 
 
@@ -594,43 +650,15 @@ if __name__ == '__main__':
     # v_csc = Vector().load_token_vector('addiction', return_type='csc', docs_or_sections='docs')
     # v_docs = Vector().load_token_vector('addiction', return_type='np_int32', docs_or_sections='docs')
 
-    v_sec = Vector().load_token_vector('nicotine', return_type='np_uint8', docs_or_sections='sections')
-    print(v_sec)
+    # v_sec = Vector().load_token_vector('nicotine', return_type='np_uint8', docs_or_sections='sections')
+    # print(v_sec)
+    #
+    # f1 = Vector().load_filter_vector(search_term=5, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
+    # f2 = Vector().load_filter_vector(search_term=6, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
+    # f3 = Vector().load_filter_vector(search_term=7, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
+    #
+    # x = f1
+    # x += f2
+    # x += f3
 
-    f1 = Vector().load_filter_vector(search_term=5, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
-    f2 = Vector().load_filter_vector(search_term=6, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
-    f3 = Vector().load_filter_vector(search_term=7, return_type='np_uint8', docs_or_sections='sections', filter_type='collection')
-
-    x = f1
-    x += f2
-    x += f3
-#
-#     filter_int32 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-#                                              return_type='np_int32')
-#     filter_uint8 = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-#                                              return_type='np_uint8')
-#     filter_csc = Vector().load_filter_vector('letter', filter_type='doc_type', docs_or_sections='sections',
-#                                              return_type='csc')
-#
-#     filter_int32 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-#                                              return_type='np_int32')
-#     filter_uint8 = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-#                                              return_type='np_uint8')
-#     filter_csc = Vector().load_filter_vector(13, filter_type='collection', docs_or_sections='docs',
-#                                              return_type='csc')
-#
-# #    v_csc =
-#
-# #    x = v_csc.convert_to_year_array(filter_uint8)
-# #    y = v_csc.convert_to_year_array(filter_int32)
-#
-#
-#
-#     z = v_csc.convert_to_year_array(filter_csc)
-#     print(z)
-#     print(len(np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)), np.intersect1d(v_csc.vector.indices, filter_csc.vector.indices)[:100])
-# #    print(v_docs)
-# #    print(filter_csc)
-# #    a = v_docs.convert_to_year_array(filter_csc)
-#
-#     print(x == y, y == z, z == a)
+    v = Vector().load_page_number_vector('max_10')

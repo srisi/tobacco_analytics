@@ -18,7 +18,7 @@ def run():
                     #'tobacco.networks',
                     #'tobacco.results_storage',
                     #'tobacco.stats',
-                    #'tobacco.text_passages',
+                    'tobacco.text_passages',
                     'tobacco.utilities'
                     ],
           include_package_data=True,
@@ -27,7 +27,7 @@ def run():
                                  'tobacco/full_db_preprocessing/*.pyx',
                                  'tobacco/frequencies_preprocessing/*.pyx',
                                  #'tobacco/stats/*.pyx',
-                                 #'tobacco/text_passages/*.pyx',
+                                 'tobacco/text_passages/*.pyx',
                                  'tobacco/utilities/*.pyx'
           ]),
           include_dirs=[np.get_include(), '.'],
