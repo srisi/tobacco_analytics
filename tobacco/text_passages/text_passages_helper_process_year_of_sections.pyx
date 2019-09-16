@@ -10,11 +10,10 @@ from tobacco.frequencies_preprocessing.preprocessing_docs import get_ocr_section
 
 def process_year_of_sections_cython(str first_token, list tokens, list search_regexes, token_vector, int year,
                                     int passage_length, active_filters, set vocabulary, globals,
-                                    insert_result_to_db=True):
+                                    insert_result_to_db=True, max_no_docs_to_process=5000):
     """ Processes one year of a text passage search and returns them.
 
     """
-
 
     cdef bytearray first_token_encoded = bytearray(first_token.encode('utf-8'))
 
@@ -28,8 +27,8 @@ def process_year_of_sections_cython(str first_token, list tokens, list search_re
 
     doc_ids_and_offsets, total_sections = get_doc_ids_and_offsets(token_vector, year,
                                                       globals['year_parts_id_list']['sections'],
-                                                      globals['section_to_doc_and_offset_arr'])
-
+                                                      globals['section_to_doc_and_offset_arr'],
+                                      max_no_docs_to_process = int(round(max_no_docs_to_process)))
 
     if total_sections < 2000:
         complete = 1
@@ -38,7 +37,8 @@ def process_year_of_sections_cython(str first_token, list tokens, list search_re
 
     # if the year has no documents, insert empty list and return
     if len(doc_ids_and_offsets) == 0:
-        insert_passages_yearly_result(tokens, active_filters, year, passage_length, complete, [])
+        if insert_result_to_db:
+            insert_passages_yearly_result(tokens, active_filters, year, passage_length, complete, [])
         return
 
     doc_ids = list(doc_ids_and_offsets.keys())
@@ -80,11 +80,14 @@ def process_year_of_sections_cython(str first_token, list tokens, list search_re
                 general
             ))
 
-    if len(output_sections) > 5000:
-        output_sections = random.sample(output_sections, 5000)
+    print("cy", year, len(output_sections))
+
+    if len(output_sections) > max_no_docs_to_process:
+        output_sections = random.sample(output_sections,max_no_docs_to_process)
 
     if insert_result_to_db:
-        p = multiprocessing.Process(target=insert_passages_yearly_result, args=(tokens, active_filters, year, passage_length, complete, output_sections))
+        p = multiprocessing.Process(target=insert_passages_yearly_result, args=(tokens,
+                                        active_filters, year, passage_length, complete, output_sections))
         p.start()
 
     return output_sections

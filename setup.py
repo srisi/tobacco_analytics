@@ -4,7 +4,7 @@ import numpy as np
 
 def run():
     setup(name='tobacco',
-          version = '0.16',
+          version = '0.17',
           author="Stephan Risi",
           author_email="risi@stanford.edu",
           packages=['tobacco',

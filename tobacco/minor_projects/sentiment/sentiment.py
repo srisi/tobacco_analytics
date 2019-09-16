@@ -16,7 +16,7 @@ EMOTIONS = [
 def sentiment(search_term):
 
     try:
-        sections = pickle.load(open(f'{search_term}.pickle', 'rb'))
+        sections = pickle.load(open(f'{search_term}a.pickle', 'rb'))
     except FileNotFoundError:
 
         globals = get_globals(globals_type='passages')
@@ -26,6 +26,9 @@ def sentiment(search_term):
         results = find_text_passages([search_term], active_filters=active_filters,
                                      years_to_process=[i for i in range(1950, 1990)],
                                      globals=globals, passage_length=200, logging=True)
+
+        embed()
+
         sections = []
         for year in results['sections']:
             if not results['sections'][year]:

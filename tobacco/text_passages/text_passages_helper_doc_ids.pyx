@@ -5,7 +5,8 @@ import numpy as np
 cimport numpy as np
 
 def get_doc_ids_and_offsets(np.ndarray[np.uint8_t, ndim=1] token_vector, int year, list year_section_id_list,
-                            np.ndarray[np.int32_t, ndim=2] section_to_doc_and_offset_arr):
+                            np.ndarray[np.int32_t, ndim=2] section_to_doc_and_offset_arr,
+                            max_no_docs_to_process=1000):
     """ Creates a dict of lists with the document ids and section passages to process.
 
     Each key in doc_ids_and_offsets indicates a document id that we need to process
@@ -81,10 +82,10 @@ def get_doc_ids_and_offsets(np.ndarray[np.uint8_t, ndim=1] token_vector, int yea
 
 
     # limit to 1000 documents to process
-    if len(doc_ids_and_offsets) > 1000:
+    if len(doc_ids_and_offsets) > max_no_docs_to_process:
         doc_ids_and_offsets_rnd = {}
         # sample requires a list, not a dict. so all the selected documents are added to a new dict.
-        selected_ids = random.sample(list(doc_ids_and_offsets), 1000)
+        selected_ids = random.sample(list(doc_ids_and_offsets), max_no_docs_to_process)
         for doc_id in selected_ids:
             doc_ids_and_offsets_rnd[doc_id] = doc_ids_and_offsets[doc_id]
         doc_ids_and_offsets = doc_ids_and_offsets_rnd

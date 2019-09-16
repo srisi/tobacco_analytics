@@ -21,7 +21,7 @@ Passage = namedtuple('Passage', ['Document', 'text'])
 
 
 def find_text_passages(tokens, active_filters, years_to_process, passage_length, globals,
-                       logging=False, insert_result_to_db=True):
+                       logging=False, insert_result_to_db=True, max_no_docs_to_process=5000):
     """ This is the main task to find text passages matching one or more search terms.
 
     The main processing itself is done year by year in the cython function process_year_of_sections_cython
@@ -36,6 +36,8 @@ def find_text_passages(tokens, active_filters, years_to_process, passage_length,
     :param prepare_for_html: if True, titles are truncated, tids turned into urls, and search terms highlighted.
     :return:
     """
+
+    print("getting here at least")
 
 
 
@@ -70,7 +72,8 @@ def find_text_passages(tokens, active_filters, years_to_process, passage_length,
     for year in years_to_process:
         output_docs['sections'][year] = process_year_of_sections_cython(first_token, tokens,
                             search_regexes, token_intersection_vector, year, passage_length,
-                            active_filters, VOCABULARY, globals, insert_result_to_db)
+                            active_filters, VOCABULARY, globals, insert_result_to_db,
+                                                                    max_no_docs_to_process)
 
         if logging:
             try:
