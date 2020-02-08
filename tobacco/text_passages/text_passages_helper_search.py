@@ -3,8 +3,10 @@ import time
 import numpy as np
 
 from tobacco.frequencies_preprocessing.preprocessing_search import wildcard_search
-from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
-from tobacco.utilities.sparse_matrices import csc_to_np_uint8
+#from tobacco.frequencies_preprocessing.preprocessing_tokens import get_ngram_vector
+#from tobacco.utilities.sparse_matrices import csc_to_np_uint8
+
+from tobacco.utilities.vector import Vector
 
 
 def parse_text_passages_tokens(tokens):
@@ -24,7 +26,9 @@ def parse_text_passages_tokens(tokens):
         # else: handle normal token
         else:
             try:
-                token_vector = get_ngram_vector(token, return_type='uint8', docs_or_sections='sections')
+
+                token_vector = Vector().load_token_vector(token, return_type='np_uint8',
+                                                          docs_or_sections='sections')
                 token_regex = re.compile(r'\b{}\b'.format(token))
 
             # will throw a fof error when the token does not exist. e.g. 'compound w'

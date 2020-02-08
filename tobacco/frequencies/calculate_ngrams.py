@@ -1,20 +1,13 @@
+from IPython import embed
 
 import multiprocessing
 import time
 
 import numpy as np
-from tobacco.frequencies_preprocessing.preprocessing_years import transform_doc_to_year_array
-from tobacco.utilities.filter_numpy import get_active_filters_np
-
-from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
-from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
-from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
-from tobacco.frequencies_preprocessing.preprocessing_search import parse_search_tokens
-from tobacco.frequencies_preprocessing.preprocessing_tokens import get_tokens
-from tobacco.frequencies_preprocessing.preprocessing_z_scores import get_z_scores
 
 
-def get_frequencies(search_tokens, active_filters, globals, profiling_run=False):
+@profile
+def get_frequencies(search_tokens, active_filters, globals=None, profiling_run=False):
     """ Processes one frequency query and returns the results as a dict
 
     :param search_tokens: unparsed search token string
@@ -39,10 +32,23 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
     - *Add collections data
     - *Add document type data (including document type groups)
 
-    Sample Query:
-    active_filters = {'doc_type': [], 'collection': [], 'availability': [], 'term': []}
-    result = get_frequencies(['cancer', 'neuro*', 'carcin*'], active_filters, globals, profiling_run=False)
+    >>> globals = get_globals()
+    >>> active_filters = {'doc_type': [], 'collection': [], 'availability': [], 'term': []}
+    >>> result = get_frequencies(['cancer', 'neuro*', 'carcin*'], active_filters, globals, profiling_run=False)
+
     """
+
+    from tobacco.frequencies_preprocessing.preprocessing_years_cython import \
+        transform_doc_to_year_array
+    from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
+
+    from tobacco.frequencies.calculate_ngrams_collections import add_collections_mp
+    from tobacco.frequencies.calculate_ngrams_doc_types import add_doc_types_mp
+    from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
+    from tobacco.frequencies_preprocessing.preprocessing_search import parse_search_tokens
+    from tobacco.frequencies_preprocessing.preprocessing_tokens import get_tokens
+    from tobacco.frequencies_preprocessing.preprocessing_z_scores import get_z_scores
+    globals = get_globals(globals_type='frequencies')
 
 
     if len(active_filters['term']) == 0:
@@ -126,6 +132,9 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
         token_dict['frequencies'] = token_dict['frequencies'].tolist()
 
     print("Time total: ", time.time() - start_time)
+
+    embed()
+
     return {'data': df, 'error': token_search_errors}
 
 
@@ -134,7 +143,6 @@ def get_frequencies(search_tokens, active_filters, globals, profiling_run=False)
 
 if __name__ == "__main__":
 
-    globals = get_globals()
 
     active_filters = {'doc_type': [], 'collection': [], 'availability': [],
                       'term': []}

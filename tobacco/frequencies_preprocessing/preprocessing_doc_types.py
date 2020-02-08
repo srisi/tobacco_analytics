@@ -1,8 +1,7 @@
-
 from tobacco.utilities.databases import Database
 from tobacco.configuration import PATH_TOKENIZED, DOC_COUNT, SECTION_COUNT
 from tobacco.frequencies_preprocessing.preprocessing_sections import get_doc_id_to_section_id_dict
-from tobacco.utilities.sparse_matrices import store_csr_matrix_to_file, load_csc_matrix_from_file, load_csr_matrix_from_file
+from tobacco.utilities.sparse_matrices import store_csr_matrix_to_file, load_csc_matrix_from_file
 
 from scipy.sparse import lil_matrix, csc_matrix
 import numpy as np

@@ -1,4 +1,4 @@
-import socket
+
 from tobacco.configuration import PATH_OCR_FILES, PATH_TOKENIZED, DOC_COUNT
 from tobacco.utilities.databases import Database
 
@@ -97,7 +97,8 @@ def get_ocr_sections(tid, sections, return_bytearray=True):
 def get_tid_to_filelength_dict():
 
     try:
-        tid_to_filelength_dict = pickle.load(gzip.open(PATH_TOKENIZED + 'tid_to_filelength_dict.pickle', 'rb'))
+        tid_to_filelength_dict = pickle.load(gzip.open(PATH_TOKENIZED +
+                    'tid_to_filelength_dict.pickle', 'rb'))
 
     except IOError:
         print("Preprocessed tid_to_filelength_dict not available. Creating a new one.")

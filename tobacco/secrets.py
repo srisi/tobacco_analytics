@@ -1,6 +1,6 @@
 import json
 
-with open('secrets.json') as f:
+with open('/home/stephan/tobacco/code/tobacco_analytics/tobacco/secrets.json') as f:
     secrets = json.loads(f.read())
 
 def get_secret(setting):

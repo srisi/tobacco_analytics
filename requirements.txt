@@ -1,0 +1,17 @@
+boto
+brewer2mpl
+cython
+ipython
+marisa_trie
+matplotlib==2.0.2
+mysqlclient
+nltk
+numpy
+pandas
+psutil
+scikit-learn
+scipy
+pyenchant
+pylint
+pytest
+redis

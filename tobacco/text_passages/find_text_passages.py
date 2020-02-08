@@ -6,10 +6,12 @@ import numpy as np
 from tobacco.frequencies_preprocessing.preprocessing_globals_loader import get_globals
 from tobacco.text_passages.text_passages_helper_process_year_of_sections import process_year_of_sections_cython
 from tobacco.text_passages.text_passages_helper_search import parse_text_passages_tokens
-from tobacco.utilities.filter_numpy import get_active_filters_np
+from tobacco.frequencies_preprocessing.preprocessing_filters import get_active_filters_np
 from tobacco.utilities.ocr import load_vocabulary_trie
 
 VOCABULARY = load_vocabulary_trie(1, return_type='set')
+
+from tobacco.frequencies.calculate_ngrams_class import NgramResult
 
 
 # only use end_year, not start_year
@@ -18,7 +20,8 @@ Document = namedtuple('Document', ['tid', 'title', 'date', 'year', 'collection']
 Passage = namedtuple('Passage', ['Document', 'text'])
 
 
-def find_text_passages(tokens, active_filters, years_to_process, passage_length, globals, logging=False):
+def find_text_passages(tokens, active_filters, years_to_process, passage_length, globals,
+                       logging=False, insert_result_to_db=True):
     """ This is the main task to find text passages matching one or more search terms.
 
     The main processing itself is done year by year in the cython function process_year_of_sections_cython
@@ -48,25 +51,26 @@ def find_text_passages(tokens, active_filters, years_to_process, passage_length,
 
     first_token, search_regexes, token_intersection_vector = parse_text_passages_tokens(tokens)
     if logging:
+        print(token_intersection_vector)
         print("first token, search regexes", first_token, search_regexes)
-        print("token intersection", token_intersection_vector.shape, token_intersection_vector.sum())
 
     if token_intersection_vector is None:
         # output_docs['errors'] =
-        output_docs['errors'] = '{} does not exist in the vocabulary of tobacco-analytics. Please enter a different term.'.format(tokens)
+        output_docs['errors'] = '{} does not exist in the vocabulary of tobacco-analytics.' \
+                                ' Please enter a different term.'.format(tokens)
         return output_docs
 
+    # 2019-01: Intermediate fix to get the filters
+    _, _, active_filters_np = get_active_filters_np(active_filters, filters, docs_or_sections='sections')
 
-    _, _, active_filters_np = get_active_filters_np(active_filters, filters, return_type=np.uint8, docs_or_sections='sections')
-
-    token_intersection_vector = token_intersection_vector * active_filters_np
+    token_intersection_vector = token_intersection_vector.vector * active_filters_np.vector
 
 
     output_docs['sections'] = {}
     for year in years_to_process:
-        output_docs['sections'][year] = process_year_of_sections_cython(first_token, tokens, search_regexes,
-                                                            token_intersection_vector, year, passage_length,
-                                                                        active_filters, VOCABULARY, globals)
+        output_docs['sections'][year] = process_year_of_sections_cython(first_token, tokens,
+                            search_regexes, token_intersection_vector, year, passage_length,
+                            active_filters, VOCABULARY, globals, insert_result_to_db)
 
         if logging:
             try:
@@ -84,19 +88,21 @@ if __name__ == "__main__":
 
 
     globals = get_globals(globals_type='passages')
-    active_filters = {'doc_type': ['application, grant'], 'collection': [], 'availability': [], 'term': []}
+    active_filters = {'doc_type': ['internal communication'], 'collection': [6], 'availability': [], 'term': []}
     start = time.time()
     # results = find_text_passages('compound w', active_filters=active_filters, start_year=2000, end_year=2016, globals=globals, passage_length=200,
     #                     passages_per_year=20, min_readability=0.00, prepare_for_html=True)
     # print("Time", time.time() - start)
 
     start = time.time()
-    results = find_text_passages(['stanford university'], active_filters=active_filters,
-                                 years_to_process=[i for i in range(1950, 1998)],
+    results = find_text_passages(['youth smoking'], active_filters=active_filters,
+                                 years_to_process=[i for i in range(1990, 1991)],
                                  globals=globals, passage_length=600, logging=True)
 
-    print("no sections", sum([len(results['sections']) for year in results]))
+    print("no sections", sum([len(results['sections'][year]) for year in results]))
     print("Time", time.time() - start)
+
+    from IPython import embed; embed()
 
 
     '''
